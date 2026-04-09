@@ -33,8 +33,8 @@ case "$1" in
         cd frontend && npm run dev
         ;;
     test-api)
-        echo "🧪 Testing Gemini API..."
-        python test_api_key.py
+        echo "🧪 Testing OpenRouter API..."
+        python test_openrouter.py
         ;;
     shell)
         echo "🐚 Entering Python shell with Rubrica environment..."
@@ -47,7 +47,7 @@ case "$1" in
         echo "  ./dev.sh status  - Check service status"
         echo "  ./dev.sh backend - Start FastAPI backend (hot-reload)"
         echo "  ./dev.sh frontend- Start Next.js frontend (hot-reload)"
-        echo "  ./dev.sh test-api- Test Gemini API connectivity"
+        echo "  ./dev.sh test-api- Test OpenRouter API connectivity"
         echo "  ./dev.sh shell   - Enter Python shell"
         ;;
 esac

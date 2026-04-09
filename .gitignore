@@ -10,6 +10,7 @@ ENV/
 .venv
 .venv-new
 test_api_key.py
+test_openrouter.py
 
 # Node
 node_modules/
