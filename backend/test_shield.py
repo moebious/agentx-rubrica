@@ -172,6 +172,97 @@ class TestMaliciousPayloads:
         assert result.risk_score > 30, f"Malicious command should have elevated risk, got {result.risk_score}"
 
 
+class TestLLMFailures:
+    """Test fail-closed behavior when LLM fails."""
+
+    @pytest.mark.asyncio
+    async def test_api_key_invalid(self, monkeypatch):
+        """Test that invalid API key returns fail-closed."""
+        from backend.shield import ShieldNode
+
+        # Mock get_instructor_client to raise an error
+        def mock_client_error(*args, **kwargs):
+            raise ValueError("Invalid API key")
+
+        import backend.shield
+        original_get_client = backend.shield.get_instructor_client
+        backend.shield.get_instructor_client = mock_client_error
+
+        try:
+            shield = ShieldNode()
+            incident = IncidentIntake(description="Valid incident description")
+
+            result = await shield.validate(incident)
+
+            # Should fail-closed: block the request
+            assert result.is_safe is False, "Should block on API error"
+            assert result.risk_score == 100, "Should have max risk score on error"
+            assert any("error" in r.lower() for r in result.risk_reasons), \
+                "Should mention error in reasons"
+
+        finally:
+            backend.shield.get_instructor_client = original_get_client
+
+    @pytest.mark.asyncio
+    async def test_network_timeout(self, monkeypatch):
+        """Test that network timeout returns fail-closed."""
+        from backend.shield import ShieldNode
+
+        # Mock get_instructor_client to simulate timeout
+        def mock_timeout(*args, **kwargs):
+            import asyncio
+            raise asyncio.TimeoutError("LLM request timed out")
+
+        import backend.shield
+        original_get_client = backend.shield.get_instructor_client
+        backend.shield.get_instructor_client = mock_timeout
+
+        try:
+            shield = ShieldNode()
+            incident = IncidentIntake(description="Valid incident description")
+
+            result = await shield.validate(incident)
+
+            # Should fail-closed: block the request
+            assert result.is_safe is False, "Should block on timeout"
+            assert result.risk_score == 100, "Should have max risk score on error"
+            assert "timeout" in " ".join(result.risk_reasons).lower() or \
+                   "timed out" in " ".join(result.risk_reasons).lower(), \
+                "Should mention timeout in reasons"
+
+        finally:
+            backend.shield.get_instructor_client = original_get_client
+
+    @pytest.mark.asyncio
+    async def test_rate_limiting(self, monkeypatch):
+        """Test that rate limiting returns fail-closed."""
+        from backend.shield import ShieldNode
+
+        # Mock get_instructor_client to simulate rate limit
+        def mock_rate_limit(*args, **kwargs):
+            raise Exception("Rate limit exceeded: 429")
+
+        import backend.shield
+        original_get_client = backend.shield.get_instructor_client
+        backend.shield.get_instructor_client = mock_rate_limit
+
+        try:
+            shield = ShieldNode()
+            incident = IncidentIntake(description="Valid incident description")
+
+            result = await shield.validate(incident)
+
+            # Should fail-closed: block the request
+            assert result.is_safe is False, "Should block on rate limit"
+            assert result.risk_score == 100, "Should have max risk score on error"
+            assert "rate limit" in " ".join(result.risk_reasons).lower() or \
+                   "429" in " ".join(result.risk_reasons), \
+                   "Should mention rate limit in reasons"
+
+        finally:
+            backend.shield.get_instructor_client = original_get_client
+
+
 # ============================================================================
 # MANUAL TESTING
 # ============================================================================

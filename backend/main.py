@@ -67,13 +67,40 @@ async def health_check():
 
 
 # ============================================================================
-# INCIDENT ENDPOINTS (TODO: Implement)
+# INCIDENT ENDPOINTS
 # ============================================================================
 
 @app.post("/api/v1/incident", tags=["Incidents"])
-async def submit_incident():
-    """Submit a new incident for triage."""
-    return {"message": "Not implemented yet"}
+async def submit_incident(incident: IncidentIntake):
+    """Submit a new incident for triage.
+
+    This endpoint:
+    1. Runs Shield validation (security gate)
+    2. If safe: Analyzes incident, searches codebase, determines routing
+    3. If unsafe: Returns blocked response
+
+    Tools are ONLY called when Shield validation passes.
+    """
+    from backend.triage import triage_incident
+
+    result = await triage_incident(incident)
+
+    # Return appropriate response based on security check
+    if result["status"] == "blocked":
+        return {
+            "status": "blocked",
+            "message": result["message"],
+            "security_check": result["security_check"],
+        }
+
+    return {
+        "status": "success",
+        "incident_id": "inc-" + str(hash(incident.description))[:8],
+        "security": result["security_check"],
+        "triage": result["triage_result"],
+        "routing": result["routing"],
+        "tools_called": result["tools_called"],
+    }
 
 
 @app.get("/api/v1/incident/{incident_id}", tags=["Incidents"])
