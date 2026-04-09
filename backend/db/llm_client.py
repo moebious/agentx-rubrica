@@ -12,7 +12,7 @@ from typing import Literal
 from loguru import logger
 from openai import OpenAI
 import instructor
-import google.generativeai as genai
+from google.genai import Client as GenaiClient
 from dotenv import load_dotenv
 
 # Load environment once at module import
@@ -113,12 +113,11 @@ def get_gemini_client():
     """Get Gemini client for direct Google AI Studio access.
 
     Returns:
-        Configured Gemini generativeai instance
+        Configured google.genai Client instance
     """
     load_dotenv()
     api_key = os.getenv("GEMINI_API_KEY")
-    genai.configure(api_key=api_key)
-    return genai
+    return GenaiClient(api_key=api_key)
 
 
 def get_instructor_client(model_type: str = "shield"):
@@ -141,13 +140,13 @@ def get_instructor_client(model_type: str = "shield"):
         return instructor.from_openai(client, model=model)
 
     else:  # google
-        # Use Gemini directly with Instructor
+        # Use new google.genai Client with Instructor
         load_dotenv()
         api_key = os.getenv("GEMINI_API_KEY")
-        genai.configure(api_key=api_key)
-        return instructor.from_gemini(
-            genai,
-            model=model.replace("google/", ""),  # Remove prefix for Gemini
+        client = GenaiClient(api_key=api_key)
+        return instructor.from_genai(
+            client,
+            mode=instructor.Mode.GENAI_STRUCTURED_OUTPUTS,
         )
 
 
@@ -155,18 +154,32 @@ def get_instructor_client(model_type: str = "shield"):
 # CONVENIENCE FUNCTIONS
 # ============================================================================
 
-async def validate_with_llm(messages, response_model):
+async def validate_with_llm(contents, response_model):
     """Convenience function for LLM validation.
 
     Args:
-        messages: Chat messages
+        contents: Content for generation (not messages format)
         response_model: Pydantic model for structured output
 
     Returns:
         Structured response from LLM
     """
     client = get_instructor_client("shield")
-    return client.messages.create(
-        messages=messages,
-        response_model=response_model,
-    )
+
+    provider = get_provider()
+    if provider == "google":
+        # New genai API uses contents directly, not messages format
+        return client.models.generate_content(
+            model="gemini-2.5-flash-exp",
+            contents=contents,
+            config={
+                "response_mime_type": "application/json",
+                "response_schema": response_model.model_json_schema(),
+            },
+        )
+    else:
+        # OpenRouter uses OpenAI format
+        return client.messages.create(
+            messages=contents,
+            response_model=response_model,
+        )

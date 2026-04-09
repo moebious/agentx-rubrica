@@ -7,6 +7,7 @@ Supports both direct Gemini API and OpenRouter for judge flexibility.
 """
 
 import os
+import json
 from typing import List
 from loguru import logger
 from pydantic import BaseModel, Field
@@ -81,14 +82,32 @@ class ShieldNode:
             # Get Instructor client (auto-detects provider)
             client = get_instructor_client("shield")
 
-            # Use Instructor for structured output
-            result = client.messages.create(
-                messages=[
-                    {"role": "system", "content": SHIELD_SYSTEM_PROMPT},
-                    {"role": "user", "content": user_prompt},
-                ],
-                response_model=ShieldValidationResult,
-            )
+            provider = get_provider()
+
+            if provider == "google":
+                # New genai API uses contents directly
+                contents = f"{SHIELD_SYSTEM_PROMPT}\n\n{user_prompt}"
+                result = client.models.generate_content(
+                    model="gemini-2.5-flash-exp",
+                    contents=contents,
+                    config={
+                        "response_mime_type": "application/json",
+                        "response_schema": ShieldValidationResult.model_json_schema(),
+                    },
+                )
+                # Parse JSON response
+                import json
+                parsed = json.loads(result.candidates[0].content.parts[0].text)
+                result = ShieldValidationResult(**parsed)
+            else:
+                # OpenRouter uses OpenAI format
+                result = client.messages.create(
+                    messages=[
+                        {"role": "system", "content": SHIELD_SYSTEM_PROMPT},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    response_model=ShieldValidationResult,
+                )
 
             # Convert to SecurityCheck model
             security_check = SecurityCheck(
