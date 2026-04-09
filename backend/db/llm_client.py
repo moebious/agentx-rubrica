@@ -46,12 +46,12 @@ def get_provider() -> LLMProvider:
 
     # Check if OpenRouter key is configured and not placeholder
     if openrouter_key and openrouter_key != "your_openrouter_api_key_here" and openrouter_key != "":
-        logger.info("🌐 Using OpenRouter provider")
+        logger.info("Using OpenRouter provider")
         return "openrouter"
 
     # Check if Gemini key is configured (your current setup)
     if gemini_key and gemini_key.startswith("AIza"):
-        logger.info("🔧 Using Google Gemini provider")
+        logger.info("Using Google Gemini provider")
         return "google"
 
     raise ValueError(

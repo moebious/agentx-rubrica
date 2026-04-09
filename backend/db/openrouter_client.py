@@ -42,7 +42,7 @@ def get_openrouter_client() -> OpenAI:
         api_key=api_key,
     )
 
-    logger.info(f"✅ OpenRouter client initialized")
+    logger.info(f"OpenRouter client initialized")
     return client
 
 
@@ -66,7 +66,7 @@ def get_model_name(model_type: str = "shield") -> str:
     }
 
     model = defaults.get(model_type, defaults["shield"])
-    logger.info(f"🎯 Using model: {model} for {model_type}")
+    logger.info(f"Using model: {model} for {model_type}")
 
     return model
 

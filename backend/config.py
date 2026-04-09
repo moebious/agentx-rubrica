@@ -29,8 +29,8 @@ class Settings(BaseSettings):
     openrouter_api_key: Optional[str] = None
 
     # Model configuration
-    shield_model: str = "google/gemini-2.5-flash-exp"
-    triage_model: str = "google/gemini-2.5-pro-exp"
+    shield_model: str = "models/gemini-2.5-flash"
+    triage_model: str = "models/gemini-2.5-pro"
 
     # Infrastructure
     redis_url: str = "redis://localhost:6379/0"
@@ -87,8 +87,8 @@ def get_settings() -> Settings:
                 "  - OpenRouter: https://openrouter.ai/keys\n"
             )
 
-        logger.info("✅ Configuration loaded successfully")
-        logger.info(f"🔧 Shield Model: {_settings.shield_model}")
+        logger.info("Configuration loaded successfully")
+        logger.info(f"Shield Model: {_settings.shield_model}")
         logger.info(f"🧠 Triage Model: {_settings.triage_model}")
 
     return _settings

@@ -88,7 +88,7 @@ class ShieldNode:
                 # New genai API uses contents directly
                 contents = f"{SHIELD_SYSTEM_PROMPT}\n\n{user_prompt}"
                 result = client.models.generate_content(
-                    model="gemini-2.5-flash-exp",
+                    model="models/gemini-2.5-flash",
                     contents=contents,
                     config={
                         "response_mime_type": "application/json",

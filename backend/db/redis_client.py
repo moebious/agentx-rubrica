@@ -19,7 +19,7 @@ def get_redis_client():
         )
         # Test connection
         client.ping()
-        logger.info(f"✅ Redis connected: {settings.redis_url}")
+        logger.info(f"Redis connected: {settings.redis_url}")
         return client
     except Exception as e:
         logger.error(f"❌ Redis connection error: {e}")
