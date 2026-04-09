@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 import sys
 
-from shared.schemas import HealthResponse
+from shared.schemas import HealthResponse, IncidentIntake, SecurityCheck
 
 
 # Configure logger
@@ -20,14 +20,14 @@ logger.add(sys.stdout, level="INFO", format="<green>{time:YYYY-MM-DD HH:mm:ss}</
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
-    logger.info("🚀 Starting Rubrica SRE Agent")
-    logger.info("📋 Loading configuration...")
-    logger.info("🔌 Connecting to Redis...")
-    logger.info("🔍 Connecting to Qdrant...")
-    logger.info("🤖 Initializing agents...")
-    logger.info("✅ Rubrica is ready")
+    logger.info("Starting Rubrica SRE Agent")
+    logger.info("Loading configuration...")
+    logger.info("Connecting to Redis...")
+    logger.info("Connecting to Qdrant...")
+    logger.info("Initializing agents...")
+    logger.info("Rubrica is ready")
     yield
-    logger.info("🛑 Shutting down Rubrica SRE Agent")
+    logger.info("Shutting down Rubrica SRE Agent")
 
 
 # Create FastAPI app
@@ -93,13 +93,24 @@ async def jira_webhook():
 
 
 # ============================================================================
-# SHIELD ENDPOINTS (TODO: Implement)
+# SHIELD ENDPOINTS
 # ============================================================================
 
-@app.post("/api/v1/shield/check", tags=["Security"])
-async def shield_check():
-    """Validate incident input for security threats."""
-    return {"message": "Not implemented yet"}
+@app.post("/api/v1/shield/check", response_model=SecurityCheck, tags=["Security"])
+async def shield_check(incident: IncidentIntake):
+    """Validate incident input for security threats.
+
+    This endpoint uses the Shield Node to detect:
+    - Prompt injection attacks
+    - System probing attempts
+    - Off-topic or spam submissions
+    - Malicious code payloads
+
+    Returns a SecurityCheck with risk assessment.
+    """
+    from backend.shield import validate_incident
+
+    return await validate_incident(incident)
 
 
 # ============================================================================

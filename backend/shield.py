@@ -61,7 +61,7 @@ class ShieldNode:
         """Initialize the Shield Node."""
         self.provider = get_provider()
         self.model = get_model_name("shield")
-        logger.info(f"🛡️ Shield Node initialized: {self.provider} + {self.model}")
+        logger.info(f"Shield Node initialized: {self.provider} + {self.model}")
 
     async def validate(self, incident: IncidentIntake) -> SecurityCheck:
         """Validate an incident submission for security threats.
@@ -72,7 +72,7 @@ class ShieldNode:
         Returns:
             SecurityCheck with validation results
         """
-        logger.info(f"🔍 Shield validating incident: {len(incident.description)} chars")
+        logger.info(f"Shield validating incident: {len(incident.description)} chars")
 
         # Build the validation prompt
         user_prompt = self._build_validation_prompt(incident)
@@ -100,14 +100,14 @@ class ShieldNode:
 
             # Log the result
             if security_check.is_safe:
-                logger.success(f"✅ Shield PASSED: risk_score={security_check.risk_score}")
+                logger.success(f"Shield PASSED: risk_score={security_check.risk_score}")
             else:
-                logger.warning(f"⛔ Shield BLOCKED: risk_score={security_check.risk_score}, reasons={security_check.risk_reasons}")
+                logger.warning(f"Shield BLOCKED: risk_score={security_check.risk_score}, reasons={security_check.risk_reasons}")
 
             return security_check
 
         except Exception as e:
-            logger.error(f"❌ Shield validation error: {e}")
+            logger.error(f"Shield validation error: {e}")
             # Fail closed: if we can't validate, block the request
             return SecurityCheck(
                 is_safe=False,
