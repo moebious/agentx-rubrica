@@ -87,9 +87,31 @@ def get_settings() -> Settings:
                 "  - OpenRouter: https://openrouter.ai/keys\n"
             )
 
+        # Disable tracing if API keys are placeholders
+        has_langchain_key = (
+            _settings.langchain_api_key and
+            _settings.langchain_api_key != "your_langsmith_key_here" and
+            _settings.langchain_api_key.startswith("lsv2_")
+        )
+        if not has_langchain_key:
+            _settings.langchain_tracing_v2 = False
+            logger.info("LangSmith tracing disabled (no valid API key)")
+        else:
+            logger.info(f"LangSmith tracing enabled for project: {_settings.langchain_project}")
+
+        # Check OPIK key
+        has_opik_key = (
+            _settings.opik_api_key and
+            _settings.opik_api_key != "your_opik_key_here"
+        )
+        if has_opik_key:
+            logger.info(f"OPIK enabled for workspace: {_settings.opik_workspace}")
+        else:
+            logger.info("OPIK disabled (no valid API key)")
+
         logger.info("Configuration loaded successfully")
         logger.info(f"Shield Model: {_settings.shield_model}")
-        logger.info(f"🧠 Triage Model: {_settings.triage_model}")
+        logger.info(f"Triage Model: {_settings.triage_model}")
 
     return _settings
 
