@@ -1,0 +1,7 @@
+{
+  "project": "Rubrica SRE Agent",
+  "methodology": "Ralph Loops",
+  "foundation_specs": ["000", "001", "010"],
+  "logic_specs": ["002", "005", "006", "008"],
+  "docs_specs": ["011", "012", "013", "014", "015", "016", "017", "018"]
+}

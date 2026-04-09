@@ -1,0 +1,4 @@
+# Rubrica Rules
+1. ALWAYS read .speckit/specs/ before coding.
+2. FOLLOW the Ralph Loop (Research, Align, Logic, Proof, Handoff).
+3. TECH: FastAPI, LangGraph, Redis, Qdrant, Next.js.

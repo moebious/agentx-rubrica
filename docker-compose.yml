@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # --- THE BORDE: Frontend (Next.js) ---
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: rubrica-web
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - api
+    restart: always
+
+  # --- THE BUNKER: Backend (FastAPI + LangGraph) ---
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: rubrica-api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - QDRANT_URL=http://qdrant:6333
+    depends_on:
+      - redis
+      - qdrant
+    volumes:
+      - ./backend:/app/backend
+      - ./shared:/app/shared
+    restart: always
+
+  # --- STATE PERSISTENCE: Redis ---
+  redis:
+    image: redis:7-alpine
+    container_name: rubrica-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: always
+
+  # --- VECTOR INTELLIGENCE: Qdrant ---
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: rubrica-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: always
+
+volumes:
+  redis_data:
+  qdrant_data:
