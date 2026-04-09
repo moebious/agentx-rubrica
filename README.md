@@ -26,7 +26,7 @@ docker compose exec api python scripts/ingest_sample.py
 
 | Layer | Technology |
 |-------|------------|
-| **LLMs** | Google Gemini 1.5 Pro & Flash |
+| **LLMs** | Google Gemini 2.5 Pro & Flash |
 | **Backend** | FastAPI (Python 3.12) |
 | **Frontend** | Next.js 14 |
 | **State** | Redis |

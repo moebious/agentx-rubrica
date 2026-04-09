@@ -2,13 +2,13 @@
 
 **Status:** TECHNICAL LOCK
 **Focus:** Data Density & Multimodal Fusion
-**Primary Model:** Gemini 1.5 Pro
+**Primary Model:** Gemini 2.5 Pro
 
 ---
 
 ## 1. The "Silver Bullet": 2-Million Token Context
 
-While other teams are trying to truncate their prompts to fit 8,000 or 32,000 tokens, we are utilizing the Gemini 1.5 Pro 2M window.
+While other teams are trying to truncate their prompts to fit 8,000 or 32,000 tokens, we are utilizing the Gemini 2.5 Pro 1M window.
 
 | Aspect | Details |
 |--------|---------|
@@ -20,7 +20,7 @@ While other teams are trying to truncate their prompts to fit 8,000 or 32,000 to
 
 ## 2. Hybrid Retrieval (The Safety Net)
 
-Even with a 2M window, we can't send the entire Saleor repo (it's too much noise). We use a dual-path retrieval system:
+Even with a 1M window, we can't send the entire Saleor repo (it's too much noise). We use a dual-path retrieval system:
 
 ### Path A: Semantic (Qdrant)
 **Used for "vague" queries.**
@@ -55,7 +55,7 @@ This is a core hackathon requirement. We don't just "read" the screenshot; we fu
 
 ## 4. Contextual Pruning (Noise Reduction)
 
-To keep the agent from getting "lost" in the 2M window, we use **Folder Summaries**.
+To keep the agent from getting "lost" in the 1M window, we use **Folder Summaries**.
 
 - We pre-generate a 1-sentence description of every major folder in Saleor.
 - Before deep-diving into code, the Supervisor reads the folder map to decide which "Haystacks" are worth searching.

@@ -36,10 +36,10 @@
 
 | Agent | Model | Role | Key Capability |
 |-------|-------|------|----------------|
-| **Shield** | Gemini 1.5 Flash | Security Sentry | Prompt injection detection, input validation |
-| **Triage Supervisor** | Gemini 1.5 Pro | Lead Investigator | Multimodal correlation, investigation planning |
-| **Librarian** | Gemini 1.5 Pro | Code Researcher | Hybrid RAG (Vector + BM25) on Saleor repo |
-| **ITSM Bridge** | Gemini 1.5 Flash | Integration Worker | Jira ticket creation, Slack notifications |
+| **Shield** | Gemini 2.5 Flash | Security Sentry | Prompt injection detection, input validation |
+| **Triage Supervisor** | Gemini 2.5 Pro | Lead Investigator | Multimodal correlation, investigation planning |
+| **Librarian** | Gemini 2.5 Pro | Code Researcher | Hybrid RAG (Vector + BM25) on Saleor repo |
+| **ITSM Bridge** | Gemini 2.5 Flash | Integration Worker | Jira ticket creation, Slack notifications |
 
 **Economic Design:** Flash for speed/low-cost tasks, Pro for deep reasoning
 
@@ -73,7 +73,7 @@
 
 | Layer | Technology | Rationale |
 |-------|------------|-----------|
-| **LLMs** | Gemini 1.5 Pro/Flash | 2M token context, multimodal, cost-effective |
+| **LLMs** | Gemini 2.5 Pro/Flash | 1M token context, multimodal, cost-effective |
 | **Orchestration** | LangGraph | Stateful DAG with checkpointing |
 | **Backend** | FastAPI (Python 3.12) | Async I/O, auto-generated OpenAPI |
 | **Frontend** | Next.js 14 + shadcn/ui | Server components, premium UX |
@@ -92,7 +92,7 @@
 ### 1. Stateful Lifecycle
 Most agents are linear chats. Rubrica can **hibernate and resume** based on external webhooks (Jira resolution). This proves production readiness.
 
-### 2. 2M Token Context Strategy
+### 2. 1M Token Context Strategy
 Instead of RAG snippets, Rubrica feeds **entire modules** to Gemini Pro. This provides full architectural awareness that snippet-based RAG cannot match.
 
 ### 3. Hybrid Search Safety
@@ -198,7 +198,7 @@ docker compose exec api python scripts/ingest_saleor.py
 
 ### Scalability
 - Horizontal: Stateless API instances + centralized Redis
-- Vertical: 2M token context scales with codebase size
+- Vertical: 1M token context scales with codebase size
 - Qdrant sharding for vector index growth
 
 ---

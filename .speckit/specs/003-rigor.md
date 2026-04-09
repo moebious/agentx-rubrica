@@ -26,7 +26,7 @@ We don't just log to the console; we provide deep, visual evidence of every deci
 
 ## 2. Security: The Shield Node (Hardened Guardrails)
 
-Since we are bypassing the NeMo engine for speed, we are building our own Shield Node using Gemini 1.5 Flash.
+Since we are bypassing the NeMo engine for speed, we are building our own Shield Node using Gemini 2.5 Flash.
 
 ### Instruction Defense
 The Shield Node uses a "Negative Constraint" prompt. It specifically looks for phrases like:

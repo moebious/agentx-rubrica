@@ -7,8 +7,8 @@ Rubrica is a multi-agent system designed to automate the lifecycle of SRE incide
 | Component | Technology |
 |-----------|------------|
 | **Orchestration** | LangGraph (Stateful Agentic Workflows) |
-| **Primary Reasoning Model** | Gemini 1.5 Pro (deep-code analysis) |
-| **Utility/Security Model** | Gemini 1.5 Flash (sub-second guardrails) |
+| **Primary Reasoning Model** | Gemini 2.5 Pro (deep-code analysis) |
+| **Utility/Security Model** | Gemini 2.5 Flash (sub-second guardrails) |
 | **Data Validation** | Instructor (Pydantic-enforced LLM outputs) |
 | **Memory/State** | Redis (Checkpointing) & Qdrant (Hybrid RAG) |
 
@@ -16,8 +16,8 @@ Rubrica is a multi-agent system designed to automate the lifecycle of SRE incide
 
 | Agent | Role | Model | Capability |
 |-------|------|-------|------------|
-| **The Shield** | Security Sentry | 1.5 Flash | Filters prompt injections and off-topic requests. |
-| **The Triage Agent** | Lead Investigator | 1.5 Pro | Correlates multimodal logs/images to plan investigation. |
+| **The Shield** | Security Sentry | 2.5 Flash | Filters prompt injections and off-topic requests. |
+| **The Triage Agent** | Lead Investigator | 2.5 Pro | Correlates multimodal logs/images to plan investigation. |
 
 ## 🔄 Architecture & Error Handling
 

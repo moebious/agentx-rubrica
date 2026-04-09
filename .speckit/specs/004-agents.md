@@ -10,7 +10,7 @@
 
 **Persona:** A non-permissive security researcher.
 
-**Model:** Gemini 1.5 Flash (Optimized for speed/latency).
+**Model:** Gemini 2.5 Flash (Optimized for speed/latency).
 
 **Mission:** Inspect the `IncidentIntake` for adversarial attacks.
 
@@ -29,7 +29,7 @@ A strict boolean `is_safe` and a risk score.
 
 **Persona:** A Senior SRE with 15 years of experience in distributed systems.
 
-**Model:** Gemini 1.5 Pro (Optimized for deep reasoning).
+**Model:** Gemini 2.5 Pro (Optimized for deep reasoning).
 
 **Mission:** Synthesize multimodal input and plan the technical investigation.
 
@@ -48,7 +48,7 @@ A `InvestigationPlan` Pydantic model.
 
 **Persona:** A specialized code indexer and search expert.
 
-**Model:** Gemini 1.5 Pro (Massive context window).
+**Model:** Gemini 2.5 Pro (Massive context window).
 
 **Mission:** Retrieve exact code snippets and technical documentation.
 
@@ -67,7 +67,7 @@ A `InvestigationPlan` Pydantic model.
 
 **Persona:** A meticulous technical project manager.
 
-**Model:** Gemini 1.5 Flash.
+**Model:** Gemini 2.5 Flash.
 
 **Mission:** Translate messy technical hypotheses into professional business formats.
 
@@ -84,6 +84,6 @@ Successful API payloads and ticket IDs.
 
 ## 🛡️ Why This Strategy Wins
 
-By using Gemini 1.5 Flash for the Shield and ITSM Bridge, we keep the UI responsive and the token costs low. We reserve the "heavy lifting" of Gemini 1.5 Pro for the Supervisor and Librarian, where deep-code reasoning is mandatory.
+By using Gemini 2.5 Flash for the Shield and ITSM Bridge, we keep the UI responsive and the token costs low. We reserve the "heavy lifting" of Gemini 2.5 Pro for the Supervisor and Librarian, where deep-code reasoning is mandatory.
 
 **This is "Economic Agent Design."**
