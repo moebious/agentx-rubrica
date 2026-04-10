@@ -124,16 +124,28 @@ class TriageAgent:
         logger.info("STEP 4: Determining response routing...")
         routing = self._determine_routing(triage_result)
 
+        # STEP 6: Handle ITSM integrations (only if safe)
+        logger.info("STEP 5: Handling ITSM integrations...")
+        from backend.itsm_bridge import handle_itsm
+
+        itsm_result = await handle_itsm(
+            triage=triage_result,
+            incident_description=incident.description,
+            routing=routing,
+            reporter_email=incident.reporter_email,
+        )
+
         result = {
             "status": "success",
             "security_check": security_check,
             "triage_result": triage_result,
             "search_queries": search_queries,
             "routing": routing,
-            "tools_called": ["shield", "triage_llm", "code_search"],  # Track tool usage
+            "itsm": itsm_result,
+            "tools_called": ["shield", "triage_llm", "code_search", "itsm_bridge"],
         }
 
-        logger.success(f"TriageAgent completed: priority={triage_result.priority_level}")
+        logger.success(f"TriageAgent completed: priority={triage_result.priority_level}, ticket={itsm_result.get('ticket_id')}")
         return result
 
     async def _analyze_incident(self, incident: IncidentIntake) -> TriageResult:

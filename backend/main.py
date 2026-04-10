@@ -76,7 +76,7 @@ async def submit_incident(incident: IncidentIntake):
 
     This endpoint:
     1. Runs Shield validation (security gate)
-    2. If safe: Analyzes incident, searches codebase, determines routing
+    2. If safe: Analyzes incident, searches codebase, handles ITSM integrations
     3. If unsafe: Returns blocked response
 
     Tools are ONLY called when Shield validation passes.
@@ -93,7 +93,7 @@ async def submit_incident(incident: IncidentIntake):
             "security_check": result["security_check"],
         }
 
-    return {
+    response = {
         "status": "success",
         "incident_id": "inc-" + str(hash(incident.description))[:8],
         "security": result["security_check"],
@@ -101,6 +101,17 @@ async def submit_incident(incident: IncidentIntake):
         "routing": result["routing"],
         "tools_called": result["tools_called"],
     }
+
+    # Add ITSM results if available
+    if "itsm" in result:
+        response["itsm"] = {
+            "ticket_id": result["itsm"].get("ticket_id"),
+            "ticket_url": result["itsm"].get("ticket_url"),
+            "slack_sent": result["itsm"].get("slack_sent"),
+            "errors": result["itsm"].get("errors", []),
+        }
+
+    return response
 
 
 @app.get("/api/v1/incident/{incident_id}", tags=["Incidents"])
