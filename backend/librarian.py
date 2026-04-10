@@ -209,37 +209,49 @@ class LibrarianAgent:
         logger.info(f"Searching codebase: query='{query}', top_k={top_k}")
 
         try:
-            # Generate query embedding
+            # Detect whether we're using local fallback embeddings (Gemini key missing)
+            api_key = os.getenv("GEMINI_API_KEY")
+            use_local_embedding = not api_key or api_key in {"your_gemini_api_key_here", ""}
+
+            # Generate query embedding (may be local fallback)
             query_embedding = await generate_embedding(query)
 
-            # Vector search in Qdrant
-            results = self.qdrant.query_points(
-                collection_name=self.collection,
-                query=query_embedding,
-                limit=top_k,
-                with_payload=True,
-            ).points
-
-            # Convert to CodeContext
             contexts: List[CodeContext] = []
-            for result in results:
-                payload = result.payload
-                contexts.append(CodeContext(
-                    file_path=payload["file_path"],
-                    language=detect_language(payload["file_path"]),
-                    code_snippet=payload["text"],
-                    line_numbers=f"{payload['start_line']}-{payload['end_line']}",
-                    relevance_score=float(result.score),
-                ))
 
-            if contexts:
-                logger.info(f"Found {len(contexts)} relevant code snippets")
+            # Vector search in Qdrant (attempt semantic search first)
+            try:
+                results = self.qdrant.query_points(
+                    collection_name=self.collection,
+                    query=query_embedding,
+                    limit=top_k,
+                    with_payload=True,
+                ).points
+
+                for result in results:
+                    payload = result.payload
+                    contexts.append(CodeContext(
+                        file_path=payload["file_path"],
+                        language=detect_language(payload["file_path"]),
+                        code_snippet=payload["text"],
+                        line_numbers=f"{payload['start_line']}-{payload['end_line']}",
+                        relevance_score=float(result.score),
+                    ))
+
+            except Exception as ve:
+                logger.warning(f"Vector search failed: {ve}")
+
+            # If we found results and are using a real embedding provider, return them.
+            # If using local fallback embeddings, the vectors are deterministic and
+            # semantic similarity is unreliable — fall through to payload keyword search
+            # to guarantee citations.
+            if contexts and not use_local_embedding:
+                logger.info(f"Found {len(contexts)} relevant code snippets (vector search)")
                 return contexts
 
             # Fallback: simple keyword match over payload text (demo resilience)
             tokens = [t for t in re.split(r"\W+", query.lower()) if len(t) >= 4]
             if not tokens:
-                return []
+                return contexts if contexts else []
 
             matched: List[CodeContext] = []
             next_offset = None
@@ -277,7 +289,15 @@ class LibrarianAgent:
 
             if matched:
                 logger.info(f"Fallback keyword search found {len(matched)} snippets")
-            return matched
+                return matched
+
+            # If we had vector contexts but didn't return earlier (because of local embeddings),
+            # return them as a last resort so we always return something when available.
+            if contexts:
+                logger.info(f"Returning vector search results as last resort: {len(contexts)} snippets")
+                return contexts
+
+            return []
 
         except Exception as e:
             logger.error(f"Code search failed: {e}")
