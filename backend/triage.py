@@ -256,12 +256,7 @@ class TriageAgent:
         return queries[:5] if queries else ["incident", "error", "failure"]
 
     async def _search_codebase(self, queries: List[str]) -> List[CodeContext]:
-        """Search codebase for relevant context.
-
-        NOTE: This is a stub. In production, this would:
-        - Call Qdrant for vector search
-        - Call Librarian agent for hybrid search
-        - Return ranked code snippets
+        """Search codebase for relevant context using Librarian agent.
 
         Args:
             queries: Search queries to execute
@@ -269,10 +264,30 @@ class TriageAgent:
         Returns:
             List of relevant code contexts
         """
-        # TODO: Implement actual Qdrant search
-        # For now, return empty list
-        logger.info(f"Code search stub: would search for {len(queries)} queries")
-        return []
+        from backend.librarian import LibrarianAgent
+
+        all_contexts = []
+        librarian = LibrarianAgent()
+
+        for query in queries[:3]:  # Limit to top 3 queries
+            try:
+                contexts = await librarian.search(query, top_k=2)
+                all_contexts.extend(contexts)
+            except Exception as e:
+                logger.warning(f"Search failed for query '{query}': {e}")
+
+        # Deduplicate by file_path and line_numbers
+        seen = set()
+        unique_contexts = []
+        for ctx in all_contexts:
+            key = f"{ctx.file_path}:{ctx.line_numbers}"
+            if key not in seen:
+                seen.add(key)
+                unique_contexts.append(ctx)
+
+        # Sort by relevance and return top 5
+        unique_contexts.sort(key=lambda x: x.relevance_score, reverse=True)
+        return unique_contexts[:5]
 
     def _determine_routing(self, triage: TriageResult) -> Dict[str, str]:
         """Determine how to route the incident response.
