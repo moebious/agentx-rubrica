@@ -64,11 +64,27 @@ Wait for the logs to show: `Application startup complete.`
 
 ## 📚 Step 4: Ingest the Codebase (The "Smart" Step)
 
-To allow the agent to triage the Saleor repository, you must run the indexing script. In a new terminal window:
+Rubrica should index a real open-source e-commerce repository for RAG (per the hackathon minimum requirements).
+
+### Option A (default): Path-config checkout (recommended)
+1) Clone your target e-commerce repo (e.g. Reaction) somewhere on disk.
+2) Set `CODEBASE_ROOT` in `.env` to the absolute path.
+3) Run ingestion.
 
 ```bash
-# This populates your local Qdrant instance with Saleor context
-docker compose exec api python scripts/ingest_saleor.py
+# Example
+export CODEBASE_ROOT="/absolute/path/to/reaction"
+
+# Populate Qdrant with codebase context
+docker compose exec api python scripts/ingest_sample.py --reset
+```
+
+### Option B (fallback): Local ./codebase
+If `CODEBASE_ROOT` is not set, ingestion falls back to `./codebase`.
+
+```bash
+# Place the codebase under ./codebase, then:
+docker compose exec api python scripts/ingest_sample.py --reset
 ```
 
 ---

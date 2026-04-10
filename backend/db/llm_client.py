@@ -74,8 +74,8 @@ def get_model_name(model_type: str = "shield") -> str:
     # Load from environment
     load_dotenv()
 
-    shield_model = os.getenv("SHIELD_MODEL", "google/gemini-2.5-flash-exp")
-    triage_model = os.getenv("TRIAGE_MODEL", "google/gemini-2.5-pro-exp")
+    shield_model = os.getenv("SHIELD_MODEL", "google/gemini-2.5-flash")
+    triage_model = os.getenv("TRIAGE_MODEL", "google/gemini-2.5-pro")
 
     defaults = {
         "shield": shield_model,
@@ -137,6 +137,9 @@ def get_instructor_client(model_type: str = "shield"):
     if provider == "openrouter":
         # Use OpenAI-compatible client with Instructor
         client = get_openai_client()
+        # Use OpenAI-compatible client with Instructor
+        # NOTE: we cap max_tokens at call sites (messages.create) to avoid requesting
+        # very large outputs on low-credit accounts.
         return instructor.from_openai(client, model=model)
 
     else:  # google

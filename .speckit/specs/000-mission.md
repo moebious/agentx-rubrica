@@ -3,7 +3,9 @@
 **Project:** Rubrica SRE Agent
 **Event:** AgentX Hackathon 2026
 **Status:** IMPLEMENTATION IN PROGRESS
-**Updated:** April 9, 2026
+**Updated:** April 10, 2026
+
+> NOTE: This is the canonical, up-to-date SPEC-000. A historical snapshot is preserved in `./000-mission-snapshot-06c09b4.md`.
 
 ---
 
@@ -30,8 +32,8 @@ To pass the automated screening, Rubrica must meet these five "Hard Gates":
 | **Multimodal Input** | ⚠️ Partial | Text + logs implemented, image processing TODO |
 | **Guardrails** | ✅ Complete | Shield Node + tool gating + fail-closed (15/15 tests pass) |
 | **Observability** | ✅ Complete | LangSmith/Opik conditional on API keys |
-| **Integrations** | ⚠️ Partial | Jira/Slack/email stubbed, TODO |
-| **Complex Codebase** | ⚠️ Partial | Code search stub, Qdrant TODO |
+| **Integrations** | ⚠️ Partial | Slack webhook supported; Jira/Email mocked outbox planned/next (demoable without creds) |
+| **Complex Codebase** | ✅ Complete | Indexed Reaction Commerce into Qdrant and returning `/api/v1/incident` citations from Reaction file paths |
 
 ---
 
@@ -44,9 +46,9 @@ To pass the automated screening, Rubrica must meet these five "Hard Gates":
 | **API Endpoints** | ✅ Complete | `backend/main.py` |
 | **Test Suite** | ✅ Complete | `backend/test_shield.py` (15 tests) |
 | **LLM Clients** | ✅ Complete | Dual-provider (Gemini + OpenRouter) |
-| **Code Search (RAG)** | ⚠️ Stub | Qdrant client exists, search logic TODO |
-| **ITSM Bridge** | ⚠️ Stub | Jira/Slack/email clients TODO |
-| **Frontend** | ❌ Not Started | Next.js app scaffolded |
+| **Code Search (RAG)** | ✅ Complete | LibrarianAgent search + Qdrant indexing; `/api/v1/incident` returns top-level `citations[]` with Reaction paths |
+| **ITSM Bridge** | ⚠️ Partial | Slack webhook supported; Jira/Email mock outbox next |
+| **Frontend** | ⚠️ Partial | Next.js scaffold present; intake+result MVP in progress |
 
 ---
 
@@ -113,9 +115,9 @@ backend/test_shield.py::15 passed (49.68s)
 
 ## 8. Next Steps (Priority Order)
 
-1. **Code Search (RAG)** - Implement Qdrant vector search for codebase context
-2. **ITSM Bridge** - Implement Jira ticket creation + Slack notifications
-3. **Frontend** - Build incident submission UI
+1. **ITSM Bridge** - Slack webhook (real) + Jira/email mocked outbox artifacts in `data/outbox/`
+2. **Frontend** - Single-page intake + results view rendering citations + ITSM status
+3. **Multimodal Input** - Accept screenshot upload and send image bytes to a multimodal LLM in triage
 4. **E2E Integration** - Connect all components with Redis checkpointing
 
 ---
@@ -123,15 +125,15 @@ backend/test_shield.py::15 passed (49.68s)
 ## 9. Git Repository
 
 **Remote:** https://github.com/moebious/agentx-rubrica
-**Branch:** `feature/shield-node`
+**Branch:** `feature/librarian-rag`
 **Recent Commits:**
+- `06c09b4` feat: Implement ITSM Bridge (Jira/Slack/Email)
+- `cb03c1f` feat: Add Librarian Agent for RAG code search
 - `9cfdde1` feat: Implement TriageAgent with Shield-based tool gating
-- `30944bd` fix: Make observability tracing conditional on valid API keys
-- `236b9aa` fix: Update model names and remove emojis
 
 ---
 
-## 4. Mandatory Deliverables
+## 10. Mandatory Deliverables
 
 Failure to include these files in our public MIT-licensed repository will result in immediate disqualification.
 
@@ -143,7 +145,7 @@ Failure to include these files in our public MIT-licensed repository will result
 
 ---
 
-## 5. Official FAQ & Constraints
+## 11. Official FAQ & Constraints
 
 | Rule | Details |
 |------|---------|

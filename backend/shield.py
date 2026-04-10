@@ -107,6 +107,7 @@ class ShieldNode:
                         {"role": "user", "content": user_prompt},
                     ],
                     response_model=ShieldValidationResult,
+                    max_tokens=1200,
                 )
 
             # Convert to SecurityCheck model

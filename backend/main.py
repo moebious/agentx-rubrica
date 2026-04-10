@@ -21,10 +21,45 @@ logger.add(sys.stdout, level="INFO", format="<green>{time:YYYY-MM-DD HH:mm:ss}</
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     logger.info("Starting Rubrica SRE Agent")
-    logger.info("Loading configuration...")
-    logger.info("Connecting to Redis...")
-    logger.info("Connecting to Qdrant...")
-    logger.info("Initializing agents...")
+
+    # Startup diagnostics for demo reliability
+    try:
+        import os
+        from pathlib import Path
+        from backend.config import get_settings
+
+        settings = get_settings()
+
+        env_root = os.getenv("CODEBASE_ROOT")
+        fallback_root = (Path.cwd() / "codebase").resolve()
+        resolved_root = None
+        if env_root:
+            resolved_root = Path(env_root).expanduser().resolve()
+        elif fallback_root.exists():
+            resolved_root = fallback_root
+
+        logger.info(f"CODEBASE_ROOT env: {env_root!r}")
+        if resolved_root is None:
+            logger.warning(
+                "No codebase root resolved. Set CODEBASE_ROOT or create ./codebase to enable RAG indexing."
+            )
+        else:
+            logger.info(f"Resolved codebase root: {str(resolved_root)} (exists={resolved_root.exists()})")
+
+        logger.info(f"Qdrant URL: {settings.qdrant_url}")
+        try:
+            from backend.db.qdrant_client import get_qdrant_client
+            from backend.librarian import COLLECTION_NAME
+
+            qdrant = get_qdrant_client()
+            info = qdrant.get_collection(COLLECTION_NAME)
+            logger.info(f"Qdrant collection '{COLLECTION_NAME}': points={info.points_count}")
+        except Exception as e:
+            logger.warning(f"Qdrant stats unavailable: {e}")
+
+    except Exception as e:
+        logger.warning(f"Startup diagnostics skipped: {e}")
+
     logger.info("Rubrica is ready")
     yield
     logger.info("Shutting down Rubrica SRE Agent")
@@ -93,13 +128,25 @@ async def submit_incident(incident: IncidentIntake):
             "security_check": result["security_check"],
         }
 
+    triage = result["triage_result"]
+
     response = {
         "status": "success",
         "incident_id": "inc-" + str(hash(incident.description))[:8],
         "security": result["security_check"],
-        "triage": result["triage_result"],
+        "triage": triage,
         "routing": result["routing"],
         "tools_called": result["tools_called"],
+        "citations": [
+            {
+                "path": ref.file_path,
+                "language": ref.language,
+                "snippet": ref.code_snippet,
+                "score": ref.relevance_score,
+                "line_numbers": ref.line_numbers,
+            }
+            for ref in (triage.code_references or [])
+        ],
     }
 
     # Add ITSM results if available
@@ -107,7 +154,11 @@ async def submit_incident(incident: IncidentIntake):
         response["itsm"] = {
             "ticket_id": result["itsm"].get("ticket_id"),
             "ticket_url": result["itsm"].get("ticket_url"),
+            "jira": result["itsm"].get("jira"),
+            "slack": result["itsm"].get("slack"),
+            "email": result["itsm"].get("email"),
             "slack_sent": result["itsm"].get("slack_sent"),
+            "email_sent": result["itsm"].get("email_sent"),
             "errors": result["itsm"].get("errors", []),
         }
 

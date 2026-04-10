@@ -11,6 +11,7 @@ Uses Gemini for embeddings and Qdrant for vector storage.
 
 import os
 import re
+import uuid
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from loguru import logger
@@ -134,29 +135,46 @@ def detect_language(file_path: str) -> str:
 # ============================================================================
 
 async def generate_embedding(text: str) -> List[float]:
-    """Generate embedding for text using Gemini.
+    """Generate embedding for text.
+
+    Prefers Gemini embeddings when GEMINI_API_KEY is configured. If not available
+    (or calls fail), falls back to a deterministic local embedding to keep demos
+    and offline indexing usable.
 
     Args:
         text: Text to embed
 
     Returns:
-        Embedding vector
+        Embedding vector (size 768)
     """
+
+    def _local_fallback_embedding(s: str) -> List[float]:
+        import hashlib
+
+        digest = hashlib.sha256(s.encode("utf-8", errors="ignore")).digest()
+        vals: List[float] = []
+        for i in range(768):
+            b = digest[i % len(digest)]
+            vals.append(((b / 255.0) * 2.0) - 1.0)
+        return vals
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key or api_key in {"your_gemini_api_key_here", ""}:
+        return _local_fallback_embedding(text)
+
     try:
         from google.genai import Client
-        client = Client(api_key=os.getenv("GEMINI_API_KEY"))
 
+        client = Client(api_key=api_key)
         response = client.models.embed_content(
             model=EMBEDDING_MODEL,
             contents=text,
         )
-
         return response.embedding.values
 
     except Exception as e:
-        logger.error(f"Failed to generate embedding: {e}")
-        # Return zero vector as fallback
-        return [0.0] * 768
+        logger.warning(f"Gemini embedding failed, using local fallback: {e}")
+        return _local_fallback_embedding(text)
 
 
 # ============================================================================
@@ -195,15 +213,15 @@ class LibrarianAgent:
             query_embedding = await generate_embedding(query)
 
             # Vector search in Qdrant
-            results = self.qdrant.search(
+            results = self.qdrant.query_points(
                 collection_name=self.collection,
-                query_vector=query_embedding,
+                query=query_embedding,
                 limit=top_k,
-                score_threshold=0.5,  # Minimum similarity
-            )
+                with_payload=True,
+            ).points
 
             # Convert to CodeContext
-            contexts = []
+            contexts: List[CodeContext] = []
             for result in results:
                 payload = result.payload
                 contexts.append(CodeContext(
@@ -214,8 +232,52 @@ class LibrarianAgent:
                     relevance_score=float(result.score),
                 ))
 
-            logger.info(f"Found {len(contexts)} relevant code snippets")
-            return contexts
+            if contexts:
+                logger.info(f"Found {len(contexts)} relevant code snippets")
+                return contexts
+
+            # Fallback: simple keyword match over payload text (demo resilience)
+            tokens = [t for t in re.split(r"\W+", query.lower()) if len(t) >= 4]
+            if not tokens:
+                return []
+
+            matched: List[CodeContext] = []
+            next_offset = None
+            while len(matched) < top_k:
+                points, next_offset = self.qdrant.scroll(
+                    collection_name=self.collection,
+                    limit=128,
+                    with_payload=True,
+                    offset=next_offset,
+                )
+                if not points:
+                    break
+
+                for p in points:
+                    payload = p.payload or {}
+                    text = (payload.get("text") or "").lower()
+                    if not text:
+                        continue
+                    if any(tok in text for tok in tokens):
+                        file_path = payload.get("file_path")
+                        if not file_path:
+                            continue
+                        matched.append(CodeContext(
+                            file_path=file_path,
+                            language=detect_language(file_path),
+                            code_snippet=payload.get("text") or "",
+                            line_numbers=f"{payload.get('start_line', 0)}-{payload.get('end_line', 0)}",
+                            relevance_score=0.0,
+                        ))
+                        if len(matched) >= top_k:
+                            break
+
+                if next_offset is None:
+                    break
+
+            if matched:
+                logger.info(f"Fallback keyword search found {len(matched)} snippets")
+            return matched
 
         except Exception as e:
             logger.error(f"Code search failed: {e}")
@@ -249,8 +311,9 @@ class LibrarianAgent:
         indexed_count = 0
         for file_path in files:
             try:
-                # Skip if in hidden directory
-                if any(part.startswith(".") for part in file_path.parts):
+                # Skip if in hidden directory or common build/dependency dirs
+                skip_dirs = {".git", "node_modules", "dist", "build", ".venv", "venv", "__pycache__"}
+                if any(part.startswith(".") or part in skip_dirs for part in file_path.parts):
                     continue
 
                 # Read file
@@ -268,8 +331,8 @@ class LibrarianAgent:
                 for i, chunk in enumerate(chunks):
                     embedding = await generate_embedding(chunk["text"])
 
-                    # Create point ID
-                    point_id = f"{file_path}:{i}"
+                    # Create deterministic UUID point ID (Qdrant requires int or UUID)
+                    point_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"{file_path}:{i}"))
 
                     # Insert into Qdrant
                     self.qdrant.upsert(

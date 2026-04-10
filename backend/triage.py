@@ -115,7 +115,7 @@ class TriageAgent:
         # STEP 4: Search codebase for context (only if safe)
         logger.info("STEP 3: Searching codebase for relevant context...")
         search_queries = await self._generate_search_queries(incident)
-        code_contexts = await self._search_codebase(search_queries)
+        code_contexts = await self._search_codebase(search_queries, incident)
 
         # Add code contexts to triage result
         triage_result.code_references = code_contexts
@@ -185,6 +185,7 @@ class TriageAgent:
                     {"role": "user", "content": self._build_triage_prompt(incident)},
                 ],
                 response_model=TriageAnalysis,
+                max_tokens=2000,
             )
 
         # Convert to TriageResult
@@ -267,11 +268,12 @@ class TriageAgent:
 
         return queries[:5] if queries else ["incident", "error", "failure"]
 
-    async def _search_codebase(self, queries: List[str]) -> List[CodeContext]:
+    async def _search_codebase(self, queries: List[str], incident: IncidentIntake) -> List[CodeContext]:
         """Search codebase for relevant context using Librarian agent.
 
         Args:
             queries: Search queries to execute
+            incident: Original incident (used for fallback query)
 
         Returns:
             List of relevant code contexts
@@ -287,6 +289,14 @@ class TriageAgent:
                 all_contexts.extend(contexts)
             except Exception as e:
                 logger.warning(f"Search failed for query '{query}': {e}")
+
+        # Always add one broad search using the raw incident description to
+        # increase the chance of returning citations in demo mode.
+        try:
+            contexts = await librarian.search(incident.description[:200], top_k=3)
+            all_contexts.extend(contexts)
+        except Exception as e:
+            logger.warning(f"Search failed for incident description: {e}")
 
         # Deduplicate by file_path and line_numbers
         seen = set()

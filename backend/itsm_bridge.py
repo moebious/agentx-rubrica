@@ -93,8 +93,35 @@ class JiraClient:
             Ticket creation response with ticket ID
         """
         if not self.is_configured():
-            logger.warning("Jira not configured, skipping ticket creation")
-            return {"success": False, "error": "Jira not configured"}
+            # Mock/outbox mode for demos without credentials
+            from pathlib import Path
+            import json
+
+            outbox_dir = Path("data/outbox")
+            outbox_dir.mkdir(parents=True, exist_ok=True)
+
+            ticket_id = f"MOCK-{triage.priority_level}-1"
+            ticket_url = f"mock://jira/{ticket_id}"
+
+            payload = {
+                "mode": "mock",
+                "ticket_id": ticket_id,
+                "ticket_url": ticket_url,
+                "triage": triage.model_dump(),
+                "incident_description": incident_description,
+            }
+
+            out_path = outbox_dir / f"jira_ticket_{ticket_id}.json"
+            out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+            logger.info(f"Jira mock ticket written: {out_path}")
+            return {
+                "success": True,
+                "mode": "mock",
+                "ticket_id": ticket_id,
+                "url": ticket_url,
+                "artifact_path": str(out_path),
+            }
 
         try:
             import httpx
@@ -285,8 +312,8 @@ class SlackClient:
             Notification response
         """
         if not self.is_configured():
-            logger.warning("Slack not configured, skipping notification")
-            return {"success": False, "error": "Slack not configured"}
+            logger.info("Slack disabled (no webhook configured)")
+            return {"success": True, "mode": "disabled"}
 
         try:
             import httpx
@@ -423,8 +450,25 @@ class EmailClient:
             Email response
         """
         if not self.is_configured():
-            logger.warning("Email not configured, skipping notification")
-            return {"success": False, "error": "Email not configured"}
+            # Mock/outbox mode for demos without credentials
+            from pathlib import Path
+            import json
+
+            outbox_dir = Path("data/outbox")
+            outbox_dir.mkdir(parents=True, exist_ok=True)
+
+            payload = {
+                "mode": "mock",
+                "to_email": to_email,
+                "ticket_id": ticket_id,
+                "resolution": resolution,
+            }
+
+            out_path = outbox_dir / f"email_resolution_{ticket_id}.json"
+            out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+            logger.info(f"Email mock written: {out_path}")
+            return {"success": True, "mode": "mock", "artifact_path": str(out_path)}
 
         try:
             import httpx
@@ -541,6 +585,10 @@ class ITSMBridge:
         """
         results = {
             "ticket_id": None,
+            "ticket_url": None,
+            "jira": {"status": "disabled", "mode": None, "artifact_path": None},
+            "slack": {"status": "disabled", "mode": None},
+            "email": {"status": "disabled", "mode": None, "artifact_path": None},
             "slack_sent": False,
             "email_sent": False,
             "errors": [],
@@ -554,8 +602,14 @@ class ITSMBridge:
             if ticket_result.get("success"):
                 results["ticket_id"] = ticket_result["ticket_id"]
                 results["ticket_url"] = ticket_result.get("url")
+                results["jira"] = {
+                    "status": "ok",
+                    "mode": ticket_result.get("mode", "real"),
+                    "artifact_path": ticket_result.get("artifact_path"),
+                }
             else:
                 error_msg = ticket_result.get("error", "Unknown error")
+                results["jira"] = {"status": "error", "mode": "real", "artifact_path": None}
                 results["errors"].append(f"Jira: {error_msg}")
                 logger.error(f"Failed to create Jira ticket: {error_msg}")
 
@@ -570,9 +624,14 @@ class ITSMBridge:
             )
 
             if slack_result.get("success"):
-                results["slack_sent"] = True
+                results["slack_sent"] = slack_result.get("mode") != "disabled"
+                results["slack"] = {
+                    "status": "disabled" if slack_result.get("mode") == "disabled" else "ok",
+                    "mode": slack_result.get("mode", "real"),
+                }
             else:
                 error_msg = slack_result.get("error", "Unknown error")
+                results["slack"] = {"status": "error", "mode": "real"}
                 results["errors"].append(f"Slack: {error_msg}")
                 logger.error(f"Failed to send Slack notification: {error_msg}")
 

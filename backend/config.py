@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     qdrant_url: str = "http://localhost:6333"
 
+    # Codebase indexing / RAG
+    codebase_root: Optional[str] = None
+
     # ITSM Integrations
     jira_domain: Optional[str] = None
     jira_user_email: Optional[str] = None
